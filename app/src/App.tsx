@@ -79,6 +79,24 @@ function Sidebar({
 	);
 }
 
+function HotkeyDisplay({ config }: { config: HotkeyConfig }) {
+	const parts = [
+		...config.modifiers.map((m) => m.charAt(0).toUpperCase() + m.slice(1)),
+		config.key,
+	];
+
+	return (
+		<span className="kbd-combo">
+			{parts.map((part, index) => (
+				<span key={part}>
+					<Kbd>{part}</Kbd>
+					{index < parts.length - 1 && <span className="kbd-plus">+</span>}
+				</span>
+			))}
+		</span>
+	);
+}
+
 function InstructionsCard() {
 	const { data: settings } = useSettings();
 
@@ -87,40 +105,31 @@ function InstructionsCard() {
 		key: "Space",
 	};
 
-	const formatHotkey = (config: HotkeyConfig) => {
-		const parts = [
-			...config.modifiers.map((m) => m.charAt(0).toUpperCase() + m.slice(1)),
-			config.key,
-		];
-		return parts;
+	const holdHotkey = settings?.hold_hotkey ?? {
+		modifiers: ["ctrl", "alt"],
+		key: "Period",
 	};
-
-	const hotkeyParts = formatHotkey(toggleHotkey);
 
 	return (
 		<div className="instructions-card animate-in">
 			<h2 className="instructions-card-title">
-				Hold{" "}
-				<span className="kbd-combo">
-					{hotkeyParts.map((part, index) => (
-						<span key={part}>
-							<Kbd>{part}</Kbd>
-							{index < hotkeyParts.length - 1 && (
-								<span className="kbd-plus">+</span>
-							)}
-						</span>
-					))}
-				</span>{" "}
-				to <span className="highlight">dictate</span>
+				<span className="highlight">Dictate</span> with your voice
 			</h2>
+			<div className="instructions-methods">
+				<div className="instruction-method">
+					<span className="instruction-label">Toggle:</span>
+					<HotkeyDisplay config={toggleHotkey} />
+					<span className="instruction-desc">Press to start/stop</span>
+				</div>
+				<div className="instruction-method">
+					<span className="instruction-label">Hold:</span>
+					<HotkeyDisplay config={holdHotkey} />
+					<span className="instruction-desc">Hold to record</span>
+				</div>
+			</div>
 			<p className="instructions-card-text">
-				Press the hotkey to start recording. Speak clearly, and your words will
-				be typed wherever your cursor is. The overlay appears in the
-				bottom-right corner of your screen.
-			</p>
-			<p className="instructions-card-hint">
-				<Mic size={14} />
-				<span>Click the overlay microphone button to toggle recording</span>
+				Speak clearly and your words will be typed wherever your cursor is. The
+				overlay appears in the bottom-right corner of your screen.
 			</p>
 		</div>
 	);
