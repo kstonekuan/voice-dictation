@@ -32,7 +32,7 @@ import {
 	useUpdateSTTProvider,
 	useUpdateToggleHotkey,
 } from "./lib/queries";
-import type { HotkeyConfig } from "./lib/tauri";
+import { type HotkeyConfig, tauriAPI } from "./lib/tauri";
 import { useRecordingStore } from "./stores/recordingStore";
 import "./styles.css";
 
@@ -40,6 +40,24 @@ type View = "home" | "settings";
 
 function ConnectionStatusIndicator() {
 	const state = useRecordingStore((s) => s.state);
+	const setState = useRecordingStore((s) => s.setState);
+
+	// Listen for connection state changes from the overlay window
+	useEffect(() => {
+		let unlisten: (() => void) | undefined;
+
+		tauriAPI
+			.onConnectionStateChanged((newState) => {
+				setState(newState);
+			})
+			.then((unlistenFn) => {
+				unlisten = unlistenFn;
+			});
+
+		return () => {
+			unlisten?.();
+		};
+	}, [setState]);
 
 	const isConnected =
 		state === "idle" || state === "recording" || state === "processing";

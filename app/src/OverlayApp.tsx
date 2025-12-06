@@ -20,7 +20,7 @@ import {
 	useSettings,
 	useTypeText,
 } from "./lib/queries";
-import { tauriAPI } from "./lib/tauri";
+import { type ConnectionState, tauriAPI } from "./lib/tauri";
 import { useRecordingStore } from "./stores/recordingStore";
 import "./app.css";
 
@@ -85,6 +85,19 @@ function RecordingControl() {
 		setClient(client ?? null);
 	}, [client, setClient]);
 
+	// Emit connection state changes to other windows (main window)
+	useEffect(() => {
+		const unsubscribe = useRecordingStore.subscribe((newState, prevState) => {
+			if (newState.state !== prevState.state) {
+				tauriAPI.emitConnectionState(newState.state as ConnectionState);
+			}
+		});
+		// Emit initial state (get from store directly to avoid dependency issues)
+		const initialState = useRecordingStore.getState().state;
+		tauriAPI.emitConnectionState(initialState as ConnectionState);
+		return unsubscribe;
+	}, []);
+
 	// ResizeObserver to auto-resize window to fit content
 	useEffect(() => {
 		if (!containerRef.current) return;
@@ -103,34 +116,45 @@ function RecordingControl() {
 	// Connect to server on startup with retry logic
 	useEffect(() => {
 		if (!client || !serverUrl) return;
-		const currentState = useRecordingStore.getState().state;
-		if (currentState !== "disconnected") return;
 
 		let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
 		let cancelled = false;
+		let isConnecting = false;
 
 		const connectWithRetry = async () => {
-			if (cancelled) return;
+			if (cancelled || isConnecting) return;
 
 			const state = useRecordingStore.getState().state;
+			// Only attempt connection if disconnected
 			if (state !== "disconnected") return;
 
+			isConnecting = true;
 			startConnecting();
+
 			try {
+				// Clean up any previous connection state before retrying
+				await client.disconnect().catch(() => {});
 				await client.connect({ wsUrl: serverUrl });
+				// Connection successful - the Connected event will handle state transition
 			} catch (error) {
 				console.error("Failed to connect:", error);
 				handleDisconnected();
 
-				// Retry after 2 seconds if still disconnected
+				// Schedule retry after 2 seconds if not cancelled
 				if (!cancelled) {
 					retryTimeoutId = setTimeout(() => {
+						isConnecting = false;
 						connectWithRetry();
 					}, 2000);
+				}
+			} finally {
+				if (!cancelled) {
+					isConnecting = false;
 				}
 			}
 		};
 
+		// Start connection attempt
 		connectWithRetry();
 
 		return () => {
@@ -211,18 +235,24 @@ function RecordingControl() {
 			console.log("[Pipecat] Disconnected from server");
 			handleDisconnected();
 
-			// Attempt reconnection after delay
-			setTimeout(async () => {
+			// Attempt reconnection after delay with proper cleanup
+			const attemptReconnect = async () => {
 				const { state } = useRecordingStore.getState();
 				if (serverUrl && state === "disconnected") {
 					startConnecting();
 					try {
+						// Clean up before reconnecting
+						await client.disconnect().catch(() => {});
 						await client.connect({ wsUrl: serverUrl });
 					} catch {
 						handleDisconnected();
+						// Schedule another retry
+						setTimeout(attemptReconnect, 2000);
 					}
 				}
-			}, 2000);
+			};
+
+			setTimeout(attemptReconnect, 2000);
 		};
 
 		const onServerMessage = async (message: unknown) => {

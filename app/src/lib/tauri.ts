@@ -1,6 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+
+export type ConnectionState =
+	| "disconnected"
+	| "connecting"
+	| "idle"
+	| "recording"
+	| "processing";
 
 interface TypeTextResult {
 	success: boolean;
@@ -112,6 +119,22 @@ export const tauriAPI = {
 	async startDragging(): Promise<void> {
 		const window = getCurrentWindow();
 		return window.startDragging();
+	},
+
+	// Connection state sync between windows
+	async emitConnectionState(state: ConnectionState): Promise<void> {
+		return emit("connection-state-changed", { state });
+	},
+
+	async onConnectionStateChanged(
+		callback: (state: ConnectionState) => void,
+	): Promise<UnlistenFn> {
+		return listen<{ state: ConnectionState }>(
+			"connection-state-changed",
+			(event) => {
+				callback(event.payload.state);
+			},
+		);
 	},
 };
 
