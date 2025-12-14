@@ -2,16 +2,12 @@ import { Loader, Select, Slider, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import {
 	useAvailableProviders,
-	useCurrentProviders,
-	useSetServerLLMProvider,
-	useSetServerSTTProvider,
-	useSetServerSTTTimeout,
 	useSettings,
-	useSTTTimeout,
 	useUpdateLLMProvider,
 	useUpdateSTTProvider,
 	useUpdateSTTTimeout,
 } from "../../lib/queries";
+import { tauriAPI } from "../../lib/tauri";
 
 const DEFAULT_STT_TIMEOUT = 0.8;
 
@@ -19,50 +15,44 @@ export function ProvidersSettings() {
 	const { data: settings, isLoading: isLoadingSettings } = useSettings();
 	const { data: availableProviders, isLoading: isLoadingProviders } =
 		useAvailableProviders();
-	const { data: currentProviders } = useCurrentProviders();
 
 	// Wait for settings (source of truth) and provider list (for options)
-	// currentProviders is only used as fallback if settings doesn't have a value
 	const isLoadingProviderData = isLoadingSettings || isLoadingProviders;
-	const { data: sttTimeout } = useSTTTimeout();
 	const updateSTTProvider = useUpdateSTTProvider();
 	const updateLLMProvider = useUpdateLLMProvider();
-	const setServerSTTProvider = useSetServerSTTProvider();
-	const setServerLLMProvider = useSetServerLLMProvider();
 	const updateSTTTimeout = useUpdateSTTTimeout();
-	const setServerSTTTimeout = useSetServerSTTTimeout();
 
 	const handleSTTProviderChange = (value: string | null) => {
 		if (!value) return;
+		// Save to local settings (Tauri) then notify overlay window to sync to server
 		updateSTTProvider.mutate(value, {
 			onSuccess: () => {
-				setServerSTTProvider.mutate(value);
+				tauriAPI.emitSettingsChanged();
 			},
 		});
 	};
 
 	const handleLLMProviderChange = (value: string | null) => {
 		if (!value) return;
+		// Save to local settings (Tauri) then notify overlay window to sync to server
 		updateLLMProvider.mutate(value, {
 			onSuccess: () => {
-				setServerLLMProvider.mutate(value);
+				tauriAPI.emitSettingsChanged();
 			},
 		});
 	};
 
 	const handleSTTTimeoutChange = (value: number) => {
+		// Save to local settings (Tauri) then notify overlay window to sync to server
 		updateSTTTimeout.mutate(value, {
 			onSuccess: () => {
-				setServerSTTTimeout.mutate(value);
+				tauriAPI.emitSettingsChanged();
 			},
 		});
 	};
 
-	// Get the current timeout value from server or settings, falling back to default
-	const currentTimeout =
-		sttTimeout?.timeout_seconds ??
-		settings?.stt_timeout_seconds ??
-		DEFAULT_STT_TIMEOUT;
+	// Get the current timeout value from settings, falling back to default
+	const currentTimeout = settings?.stt_timeout_seconds ?? DEFAULT_STT_TIMEOUT;
 
 	// Local state for smooth slider dragging
 	const [sliderValue, setSliderValue] = useState(currentTimeout);
@@ -100,7 +90,7 @@ export function ProvidersSettings() {
 					) : (
 						<Select
 							data={sttProviderOptions}
-							value={settings?.stt_provider ?? currentProviders?.stt ?? null}
+							value={settings?.stt_provider ?? null}
 							onChange={handleSTTProviderChange}
 							placeholder="Select provider"
 							disabled={sttProviderOptions.length === 0}
@@ -117,14 +107,16 @@ export function ProvidersSettings() {
 				<div className="settings-row" style={{ marginTop: 16 }}>
 					<div>
 						<p className="settings-label">Language Model</p>
-						<p className="settings-description">AI service for text cleanup</p>
+						<p className="settings-description">
+							AI service for text formatting
+						</p>
 					</div>
 					{isLoadingProviderData ? (
 						<Loader size="sm" color="gray" />
 					) : (
 						<Select
 							data={llmProviderOptions}
-							value={settings?.llm_provider ?? currentProviders?.llm ?? null}
+							value={settings?.llm_provider ?? null}
 							onChange={handleLLMProviderChange}
 							placeholder="Select provider"
 							disabled={llmProviderOptions.length === 0}

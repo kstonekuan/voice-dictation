@@ -4,28 +4,29 @@
 
 # Tambourine
 
-Customizable AI powered voice dictation tool. Open-source alternative to [Wispr Flow](https://wisprflow.ai) and [Superwhisper](https://superwhisper.com). Speak and your words are typed wherever your cursor is.
+Your personal voice interface into any app. Speak naturally and your words appear wherever your cursor is, powered by customizable AI voice dictation.
+
+Open-source alternative to [Wispr Flow](https://wisprflow.ai) and [Superwhisper](https://superwhisper.com).
 
 > ⚠️ **Build in Progress**
 > This project is under active development. Core features work well, but expect breaking changes to the code, architecture, and configuration as the project evolves.
 
 ## Why?
 
-**You speak faster than you type.** Typing averages 40-50 wpm, but speaking averages 130-160 wpm. Tambourine lets you write at the speed you think, capturing ideas before they slip away.
+**Your voice, any app.** Tambourine gives you a universal voice interface that works everywhere: emails, messages, documents, code editors, terminals. Press a hotkey, speak, and your words are typed at your cursor. No copy-pasting, no app switching, no limitations.
 
-**It's easier on your body.** Hours of typing can lead to wrist strain, eye fatigue, and poor posture. Voice dictation gives your hands a break and lets you work from any position—standing, walking, or leaning back in your chair.
+**Speak at the speed of thought.** Typing averages 40-50 wpm, but speaking averages 130-160 wpm. Capture ideas before they slip away, and give your hands a break from the keyboard.
 
-**AI handles the cleanup.** Unlike raw transcription, Tambourine uses AI to remove filler words ("um", "uh", "like"), fix grammar, and format your text properly. You speak naturally; the output reads like polished writing.
-
-**It works everywhere.** Voice dictation types directly at your cursor—emails, messages, documents, code, terminal. No copy-pasting or app switching required.
+**AI that understands you.** Unlike raw transcription, Tambourine uses AI to format your speech into clean text—removing filler words, adding punctuation, and applying your personal dictionary for technical terms and proper nouns.
 
 **Why not native dictation?** Built-in dictation is not personalized but Tambourine can be customized to your speaking and writing style, and with a personal dictionary for uncommon terms.
 
-**Why not proprietary tools?** Unlike Wispr Flow or Superwhisper, this project gives you full control:
+**Why not proprietary tools?** Unlike Wispr Flow or Superwhisper, this project gives you full control and transparency.
 
-- **Swap AI providers** — Choose your STT (Cartesia, Deepgram, AssemblyAI, and more) and LLM (Cerebras, OpenAI, Anthropic, and more)
-- **Customize processing** — Modify prompts, add custom processors, or chain multiple LLMs
-- **Extensible** — Built on [Pipecat](https://github.com/pipecat-ai/pipecat)'s modular pipeline framework
+**Fully customizable.** This is your voice interface, built your way:
+- **Choose your AI providers** — Pick your STT (Cartesia, Deepgram, AssemblyAI) and LLM (Cerebras, OpenAI, Anthropic)
+- **Customize the formatting** — Modify prompts, add custom rules, build your personal dictionary
+- **Extend freely** — Built on [Pipecat](https://github.com/pipecat-ai/pipecat)'s modular pipeline, fully open-source
 
 ## Platform Support
 
@@ -43,8 +44,8 @@ Customizable AI powered voice dictation tool. Open-source alternative to [Wispr 
   - Hold-to-record: `` Ctrl+Alt+` `` - Hold to record, release to stop
   - Toggle mode: `Ctrl+Alt+Space` - Press to start, press again to stop
 - **Real-time Speech-to-Text** - Fast transcription with configurable STT providers
-- **LLM Text Cleanup** - Removes filler words, fixes grammar using configurable LLM
-- **Customizable Prompts** - Edit cleanup rules, enable advanced features, add personal dictionary
+- **LLM Text Formatting** - Removes filler words, adds punctuation using configurable LLM
+- **Customizable Prompts** - Edit formatting rules, enable advanced features, add personal dictionary
 - **Automatic Typing** - Pastes cleaned text at cursor position
 - **Recording Overlay** - Visual indicator in bottom-right corner during dictation
 - **System Tray Integration** - Click to show/hide, right-click menu
@@ -73,7 +74,7 @@ Customizable AI powered voice dictation tool. Open-source alternative to [Wispr 
 │                  Python Server (server/)                    │
 │  - Pipecat SmallWebRTC for audio streaming                  │
 │  - STT providers (Cartesia, Deepgram, Groq, and more)       │
-│  - LLM cleanup (Cerebras, OpenAI, Anthropic, and more)      │
+│  - LLM formatting (Cerebras, OpenAI, Anthropic, and more)   │
 │  - FastAPI endpoints for config and provider switching      │
 │  - Returns cleaned text to app                              │
 └─────────────────────────────────────────────────────────────┘
@@ -176,13 +177,8 @@ uv run python main.py --verbose
 cd app
 
 # Development
-pnpm dev           # Start Tauri app in dev mode
-pnpm dev:vite      # Start Vite dev server only
-pnpm lint          # Lint and format code (Biome)
-pnpm typecheck     # Run TypeScript type checking
-pnpm knip          # Check for unused exports/dependencies
-pnpm cargo         # Run Clippy and format Rust code
 pnpm check         # Run all checks (lint + typecheck + knip + cargo)
+pnpm dev           # Start Tauri app in dev mode
 
 # Production Build
 pnpm build         # Build for current platform
@@ -201,8 +197,8 @@ The app connects to `localhost:8765` by default via WebRTC. Settings are persist
 - **Providers** - Select active STT and LLM providers from available options
 - **Audio** - Microphone selection, sound feedback, auto-mute during recording
 - **Hotkeys** - Customize toggle and hold-to-record shortcuts
-- **LLM Cleanup Prompt** - Three customizable sections:
-  - Core Cleanup Rules - Filler word removal, grammar, punctuation commands
+- **LLM Formatting Prompt** - Three customizable sections:
+  - Core Formatting Rules - Filler word removal, punctuation, capitalization
   - Advanced Features - Backtrack corrections ("scratch that"), list formatting
   - Personal Dictionary - Custom words
 

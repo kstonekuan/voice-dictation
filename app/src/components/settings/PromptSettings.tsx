@@ -2,11 +2,10 @@ import { Accordion, Loader } from "@mantine/core";
 import { useEffect, useState } from "react";
 import {
 	useDefaultSections,
-	useSetServerPromptSections,
 	useSettings,
 	useUpdateCleanupPromptSections,
 } from "../../lib/queries";
-import type { CleanupPromptSections } from "../../lib/tauri";
+import { type CleanupPromptSections, tauriAPI } from "../../lib/tauri";
 import { PromptSectionEditor } from "./PromptSectionEditor";
 
 const DEFAULT_SECTIONS: CleanupPromptSections = {
@@ -33,7 +32,6 @@ export function PromptSettings() {
 	const { data: defaultSections, isLoading: isLoadingDefaultSections } =
 		useDefaultSections();
 	const updateCleanupPromptSections = useUpdateCleanupPromptSections();
-	const setServerPromptSections = useSetServerPromptSections();
 
 	// Consolidated local state for all sections
 	const [localSections, setLocalSections] = useState<LocalSections>({
@@ -109,11 +107,11 @@ export function PromptSettings() {
 		};
 	};
 
-	// Save all sections to both Tauri and server
+	// Save all sections to Tauri and notify overlay window to sync to server
 	const saveAllSections = (sections: CleanupPromptSections) => {
 		updateCleanupPromptSections.mutate(sections, {
 			onSuccess: () => {
-				setServerPromptSections.mutate(sections);
+				tauriAPI.emitSettingsChanged();
 			},
 		});
 	};
@@ -148,7 +146,7 @@ export function PromptSettings() {
 
 	return (
 		<div className="settings-section animate-in animate-in-delay-4">
-			<h3 className="settings-section-title">LLM Cleanup Prompt</h3>
+			<h3 className="settings-section-title">LLM Formatting Prompt</h3>
 			<div className="settings-card">
 				{isLoadingDefaultSections ? (
 					<div
@@ -164,13 +162,14 @@ export function PromptSettings() {
 					<Accordion variant="separated" radius="md">
 						<PromptSectionEditor
 							sectionKey="main-prompt"
-							title="Core Cleanup Rules"
-							description="Filler word removal, grammar, punctuation commands"
-							enabled={localSections.main.enabled}
+							title="Core Formatting Rules"
+							description="Filler word removal, punctuation, capitalization"
+							enabled={true}
+							hideToggle={true}
 							initialContent={localSections.main.content}
 							defaultContent={defaultSections?.main ?? ""}
 							hasCustom={hasCustomContent.main}
-							onToggle={(checked) => handleToggle("main", checked)}
+							onToggle={() => {}}
 							onSave={(content) => handleSave("main", content)}
 							onReset={() => handleReset("main")}
 							isSaving={updateCleanupPromptSections.isPending}

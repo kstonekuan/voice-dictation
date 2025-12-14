@@ -1,7 +1,7 @@
 """Transcription buffer processor for dictation.
 
 Buffers transcription text until the user explicitly stops recording,
-then emits a single consolidated transcription for LLM cleanup.
+then emits a single consolidated transcription for LLM formatting.
 
 Uses a state machine pattern with tagged unions for explicit state management:
 - IdleState: Not recording
@@ -160,6 +160,16 @@ class TranscriptionBufferProcessor(FrameProcessor):
     def get_transcription_timeout(self) -> float:
         """Get the current transcription wait timeout."""
         return self._transcription_wait_timeout
+
+    async def cleanup(self) -> None:
+        """Clean up processor resources including internal tasks.
+
+        Called by pipecat when the pipeline is being shut down.
+        Cancels any pending timeout or draining tasks.
+        """
+        self._cancel_timeout()
+        self._cancel_draining()
+        await super().cleanup()
 
     async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
         """Process frames using state machine pattern."""

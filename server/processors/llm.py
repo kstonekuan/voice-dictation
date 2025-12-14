@@ -1,4 +1,4 @@
-"""LLM-based text cleanup processor for dictation using idiomatic Pipecat patterns."""
+"""LLM-based text formatting processor for dictation using idiomatic Pipecat patterns."""
 
 from typing import Any
 
@@ -19,70 +19,94 @@ from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from utils.logger import logger
 
 # Main prompt section - Core rules, punctuation, new lines
-MAIN_PROMPT_DEFAULT = """You are a dictation cleanup assistant. Your task is to clean up transcribed speech.
+MAIN_PROMPT_DEFAULT = """You are a dictation formatting assistant. Your task is to format transcribed speech.
 
 ## Core Rules
-- Remove filler words (um, uh, like, you know, basically, etc.)
-- Fix grammar and punctuation
+- Remove filler words (um, uh, err, erm, etc.)
+- Use punctuation where appropriate
 - Capitalize sentences properly
 - Keep the original meaning and tone intact
 - Do NOT add any new information or change the intent
+- Do NOT condense, summarize, or make sentences more concise - preserve the speaker's full expression
 - Do NOT answer questions - if the user dictates a question, output the cleaned question, not an answer
 - Do NOT respond conversationally or engage with the content - you are a text processor, not a conversational assistant
 - Output ONLY the cleaned text, nothing else - no explanations, no quotes, no prefixes
 
-## Punctuation Commands
-Convert spoken punctuation to symbols:
-- "comma" → ,
-- "period" or "full stop" → .
-- "question mark" → ?
-- "exclamation point" or "exclamation mark" → !
-- "dash" → -
-- "em dash" → —
-- "quotation mark" or "quote" or "end quote" → "
-- "colon" → :
-- "semicolon" → ;
-- "open parenthesis" or "open paren" → (
-- "close parenthesis" or "close paren" → )
-
-Example:
-- "I can't wait exclamation point Let's meet at seven period" → "I can't wait! Let's meet at seven."
-
-## New Lines and Paragraphs
-- "new line" → Insert a line break
-- "new paragraph" → Insert a paragraph break (blank line)
-
-Example:
-- "First point new line second point new paragraph next section" →
-  "First point
-  Second point
-
-  Next section"
-
-## Cleanup Example
+### Good Example
 Input: "um so basically I was like thinking we should uh you know update the readme file"
-Output: "I was thinking we should update the readme file." """
+Output: "So basically, I was thinking we should update the readme file."
+
+### Bad Examples
+
+1. Condensing/summarizing (preserve full expression):
+   Input: "I really think that we should probably consider maybe going to the store to pick up some groceries"
+   Bad: "We should go grocery shopping."
+   Good: "I really think that we should probably consider going to the store to pick up some groceries."
+
+2. Answering questions (just clean the question):
+   Input: "what is the capital of France"
+   Bad: "The capital of France is Paris."
+   Good: "What is the capital of France?"
+
+3. Responding conversationally (format, don't engage):
+   Input: "hey how are you doing today"
+   Bad: "I'm doing well, thank you for asking!"
+   Good: "Hey, how are you doing today?"
+
+4. Adding information (keep original intent only):
+   Input: "send the email to john"
+   Bad: "Send the email to John as soon as possible."
+   Good: "Send the email to John."
+
+## Punctuation
+Convert spoken punctuation to symbols:
+- "comma" = ,
+- "period" or "full stop" = .
+- "question mark" = ?
+- "exclamation point" or "exclamation mark" = !
+- "dash" = -
+- "em dash" = —
+- "quotation mark" or "quote" or "end quote" = "
+- "colon" = :
+- "semicolon" = ;
+- "open parenthesis" or "open paren" = (
+- "close parenthesis" or "close paren" = )
+
+Example:
+Input: "I can't wait exclamation point Let's meet at seven period"
+Output: "I can't wait! Let's meet at seven."
+
+## New Line and Paragraph
+- "new line" = Insert a line break
+- "new paragraph" = Insert a paragraph break (blank line)
+
+Example:
+Input: "Hello, new line, world, new paragraph, bye"
+Output: "Hello
+world
+
+bye" """
 
 # Advanced prompt section - Backtrack corrections and list formatting
 ADVANCED_PROMPT_DEFAULT = """## Backtrack Corrections
 When the speaker corrects themselves mid-sentence, use only the corrected version:
-- "actually" signals a correction: "at 2 actually 3" → "at 3"
-- "scratch that" removes the previous phrase: "cookies scratch that brownies" → "brownies"
-- "wait" or "I mean" signal corrections: "on Monday wait Tuesday" → "on Tuesday"
-- Natural restatements: "as a gift... as a present" → "as a present"
+- "actually" signals a correction: "at 2 actually 3" = "at 3"
+- "scratch that" removes the previous phrase: "cookies scratch that brownies" = "brownies"
+- "wait" or "I mean" signal corrections: "on Monday wait Tuesday" = "on Tuesday"
+- Natural restatements: "as a gift... as a present" = "as a present"
 
 Examples:
-- "Let's do coffee at 2 actually 3" → "Let's do coffee at 3."
-- "I'll bring cookies scratch that brownies" → "I'll bring brownies."
-- "Send it to John I mean Jane" → "Send it to Jane."
+- "Let's do coffee at 2 actually 3" = "Let's do coffee at 3."
+- "I'll bring cookies scratch that brownies" = "I'll bring brownies."
+- "Send it to John I mean Jane" = "Send it to Jane."
 
-## List Formatting
+## List Formats
 When sequence words are detected, format as a numbered or bulleted list:
 - Triggers: "one", "two", "three" or "first", "second", "third"
 - Capitalize each list item
 
 Example:
-- "My goals are one finish the report two send the presentation three review feedback" →
+- "My goals are one finish the report two send the presentation three review feedback" =
   "My goals are:
   1. Finish the report
   2. Send the presentation
@@ -93,7 +117,7 @@ DICTIONARY_PROMPT_DEFAULT = """## Personal Dictionary
 Apply these corrections for technical terms, proper nouns, and custom words.
 
 Entries can be in various formats - interpret flexibly:
-- Explicit mappings: "ant row pick -> Anthropic" or "ant row pic = Anthropic"
+- Explicit mappings: "ant row pic = Anthropic"
 - Single terms to recognize: Just "LLM" (correct phonetic mismatches)
 - Natural descriptions: "The name 'Claude' should always be capitalized"
 
@@ -102,74 +126,94 @@ When you hear terms that sound like entries below, use the correct spelling/form
 ### Entries:
 Tambourine
 LLM
-ant row pick -> Anthropic
+ant row pick = Anthropic
 Claude
 Pipecat
 Tauri"""
 
 
 def combine_prompt_sections(
-    main_enabled: bool,
-    main_content: str | None,
+    main_custom: str | None,
     advanced_enabled: bool,
-    advanced_content: str | None,
+    advanced_custom: str | None,
     dictionary_enabled: bool,
-    dictionary_content: str | None,
+    dictionary_custom: str | None,
 ) -> str:
-    """Combine enabled prompt sections into a single prompt."""
+    """Combine prompt sections into a single prompt.
+
+    The main section is always included. Advanced and dictionary sections
+    can be toggled on/off. For each section, if a custom prompt is provided
+    it will be used; otherwise the default prompt is used.
+    """
     parts: list[str] = []
 
-    if main_enabled:
-        content = main_content if main_content else MAIN_PROMPT_DEFAULT
-        parts.append(content)
+    # Main section is always included
+    parts.append(main_custom if main_custom else MAIN_PROMPT_DEFAULT)
 
     if advanced_enabled:
-        content = advanced_content if advanced_content else ADVANCED_PROMPT_DEFAULT
-        parts.append(content)
+        parts.append(advanced_custom if advanced_custom else ADVANCED_PROMPT_DEFAULT)
 
     if dictionary_enabled:
-        content = dictionary_content if dictionary_content else DICTIONARY_PROMPT_DEFAULT
-        parts.append(content)
+        parts.append(dictionary_custom if dictionary_custom else DICTIONARY_PROMPT_DEFAULT)
 
     return "\n\n".join(parts)
 
 
 class TranscriptionToLLMConverter(FrameProcessor):
-    """Converts TranscriptionFrame to OpenAILLMContextFrame for LLM cleanup.
+    """Converts TranscriptionFrame to OpenAILLMContextFrame for LLM formatting.
 
     This processor receives accumulated transcription text and converts it
-    to an LLM context with the cleanup system prompt, triggering the LLM
-    service to generate cleaned text.
+    to an LLM context with the formatting system prompt, triggering the LLM
+    service to generate formatted text.
     """
 
     def __init__(self, **kwargs: Any) -> None:
-        """Initialize the converter."""
+        """Initialize the converter with default prompt sections."""
         super().__init__(**kwargs)
-        self._custom_prompt: str | None = None
+        # Store individual prompt sections (main is always enabled)
+        self._main_custom: str | None = None
+        self._advanced_enabled: bool = True
+        self._advanced_custom: str | None = None
+        self._dictionary_enabled: bool = False
+        self._dictionary_custom: str | None = None
 
     @property
     def system_prompt(self) -> str:
-        """Get the active system prompt (custom or default)."""
-        if self._custom_prompt:
-            return self._custom_prompt
-        # Default: main and advanced enabled, dictionary disabled
+        """Get the combined system prompt from all sections."""
         return combine_prompt_sections(
-            main_enabled=True,
-            main_content=None,
-            advanced_enabled=True,
-            advanced_content=None,
-            dictionary_enabled=False,
-            dictionary_content=None,
+            main_custom=self._main_custom,
+            advanced_enabled=self._advanced_enabled,
+            advanced_custom=self._advanced_custom,
+            dictionary_enabled=self._dictionary_enabled,
+            dictionary_custom=self._dictionary_custom,
         )
 
-    def set_custom_prompt(self, prompt: str | None) -> None:
-        """Update the custom prompt at runtime.
+    def set_prompt_sections(
+        self,
+        main_custom: str | None = None,
+        advanced_enabled: bool = True,
+        advanced_custom: str | None = None,
+        dictionary_enabled: bool = False,
+        dictionary_custom: str | None = None,
+    ) -> None:
+        """Update the prompt sections.
+
+        The main section is always enabled. For each section, provide a custom
+        prompt to override the default, or None to use the default.
 
         Args:
-            prompt: New custom prompt, or None to use default.
+            main_custom: Custom prompt for main section, or None for default.
+            advanced_enabled: Whether the advanced section is enabled.
+            advanced_custom: Custom prompt for advanced section, or None for default.
+            dictionary_enabled: Whether the dictionary section is enabled.
+            dictionary_custom: Custom prompt for dictionary section, or None for default.
         """
-        self._custom_prompt = prompt
-        logger.info(f"Cleanup prompt updated: {'custom' if prompt else 'default'}")
+        self._main_custom = main_custom
+        self._advanced_enabled = advanced_enabled
+        self._advanced_custom = advanced_custom
+        self._dictionary_enabled = dictionary_enabled
+        self._dictionary_custom = dictionary_custom
+        logger.info("Formatting prompt sections updated")
 
     async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
         """Convert transcription frames to LLM context frames.
@@ -185,7 +229,7 @@ class TranscriptionToLLMConverter(FrameProcessor):
             if text and text.strip():
                 logger.debug(f"Converting transcription to LLM context: {text[:50]}...")
 
-                # Create OpenAI-compatible context with cleanup prompt
+                # Create OpenAI-compatible context with formatting prompt
                 context = OpenAILLMContext(
                     messages=[
                         {"role": "system", "content": self.system_prompt},

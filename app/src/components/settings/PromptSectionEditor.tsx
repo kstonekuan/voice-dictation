@@ -14,6 +14,7 @@ export interface PromptSectionEditorProps {
 	resetLabel?: string;
 	minRows?: number;
 	maxRows?: number;
+	hideToggle?: boolean;
 	onToggle: (enabled: boolean) => void;
 	onSave: (content: string) => void;
 	onReset: () => void;
@@ -33,6 +34,7 @@ export function PromptSectionEditor({
 	resetLabel = "Reset to Default",
 	minRows = 6,
 	maxRows = 15,
+	hideToggle = false,
 	onToggle,
 	onSave,
 	onReset,
@@ -79,16 +81,18 @@ export function PromptSectionEditor({
 						<p className="settings-label">{title}</p>
 						<p className="settings-description">{description}</p>
 					</div>
-					<Switch
-						checked={enabled}
-						onChange={(e) => {
-							e.stopPropagation();
-							onToggle(e.currentTarget.checked);
-						}}
-						onClick={(e) => e.stopPropagation()}
-						color="gray"
-						size="md"
-					/>
+					{!hideToggle && (
+						<Switch
+							checked={enabled}
+							onChange={(e) => {
+								e.stopPropagation();
+								onToggle(e.currentTarget.checked);
+							}}
+							onClick={(e) => e.stopPropagation()}
+							color="gray"
+							size="md"
+						/>
+					)}
 				</div>
 			</Accordion.Control>
 			<Accordion.Panel>
