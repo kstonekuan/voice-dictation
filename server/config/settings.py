@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     ollama_base_url: str | None = Field(
         None, description="Ollama base URL (default: http://localhost:11434)"
     )
+    ollama_model: str | None = Field(
+        None, description="Ollama model name (e.g., llama3.2, mistral, qwen2.5)"
+    )
     openrouter_api_key: str | None = Field(None, description="OpenRouter API key for LLM")
 
     # Logging

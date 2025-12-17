@@ -140,18 +140,18 @@ class NoAuthMapper(CredentialMapper):
     def __init__(
         self,
         availability_fields: tuple[str, ...] = (),
-        optional_fields: dict[str, str] | None = None,
+        field_mapping: dict[str, str] | None = None,
     ) -> None:
-        """Initialize with availability and optional field mappings.
+        """Initialize with availability and field mappings.
 
         Args:
             availability_fields: Settings fields that must be truthy for the provider
                 to be considered available (e.g., ("whisper_enabled",) or ("ollama_base_url",))
-            optional_fields: Optional mapping of settings_field -> param_name
-                for constructor parameters (e.g., {"ollama_base_url": "base_url"})
+            field_mapping: Mapping of settings_field -> param_name for constructor
+                parameters (e.g., {"ollama_base_url": "base_url", "ollama_model": "model"})
         """
         self.availability_fields = availability_fields
-        self.optional_fields = optional_fields or {}
+        self.field_mapping = field_mapping or {}
 
     def get_required_fields(self) -> tuple[str, ...]:
         return ()
@@ -164,7 +164,7 @@ class NoAuthMapper(CredentialMapper):
 
     def map_credentials(self, settings: "Settings") -> dict[str, Any]:
         result: dict[str, Any] = {}
-        for settings_field, param_name in self.optional_fields.items():
+        for settings_field, param_name in self.field_mapping.items():
             value = getattr(settings, settings_field, None)
             if value:
                 result[param_name] = value
@@ -323,11 +323,14 @@ LLM_PROVIDERS: dict[LLMProviderId, LLMProviderConfig] = {
     ),
     LLMProviderId.OLLAMA: LLMProviderConfig(
         provider_id=LLMProviderId.OLLAMA,
-        display_name="Ollama (Local)",
+        display_name="Ollama",
         service_class=OLLamaLLMService,
         credential_mapper=NoAuthMapper(
-            availability_fields=("ollama_base_url",),
-            optional_fields={"ollama_base_url": "base_url"},
+            availability_fields=("ollama_base_url", "ollama_model"),
+            field_mapping={
+                "ollama_base_url": "base_url",
+                "ollama_model": "model",
+            },
         ),
     ),
     LLMProviderId.OPENAI: LLMProviderConfig(
