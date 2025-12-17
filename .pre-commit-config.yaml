@@ -1,7 +1,87 @@
+---
 repos:
+  # Python - Ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.8
+    rev: v0.14.9
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  # Python - Type checking and tests
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: ty type check
+        entry: uv run ty check
+        language: system
+        types: [python]
+        pass_filenames: false
+        files: ^server/
+
+      - id: pytest
+        name: pytest
+        entry: sh -c 'cd server && uv run pytest'
+        language: system
+        types: [python]
+        pass_filenames: false
+        files: ^server/
+
+  # TypeScript - Biome and TypeScript
+  - repo: local
+    hooks:
+      - id: biome
+        name: biome check
+        entry: pnpm --dir app run lint
+        language: system
+        types_or: [ts, tsx, json]
+        pass_filenames: false
+        files: ^app/
+
+      - id: typescript
+        name: typescript check
+        entry: pnpm --dir app run typecheck
+        language: system
+        types_or: [ts, tsx]
+        pass_filenames: false
+        files: ^app/
+
+  # Rust - Clippy and Fmt
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --manifest-path app/src-tauri/Cargo.toml --
+        language: system
+        types: [rust]
+        pass_filenames: false
+        files: ^app/src-tauri/
+
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: >-
+          cargo clippy --all-targets --all-features
+          --manifest-path app/src-tauri/Cargo.toml -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+        files: ^app/src-tauri/
+
+  # Tests
+  - repo: local
+    hooks:
+      - id: vitest
+        name: vitest
+        entry: pnpm --dir app test
+        language: system
+        types_or: [ts, tsx]
+        pass_filenames: false
+        files: ^app/
+
+      - id: cargo-test
+        name: cargo test
+        entry: cargo test --quiet --manifest-path app/src-tauri/Cargo.toml
+        language: system
+        types: [rust]
+        pass_filenames: false
+        files: ^app/src-tauri/
