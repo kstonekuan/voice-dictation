@@ -117,7 +117,7 @@ export function ProvidersSettings() {
 			<div className="settings-card">
 				<div className="settings-row">
 					<div>
-						<p className="settings-label">Speech-to-Text</p>
+						<p className="settings-label">Speech-to-Text (STT)</p>
 						<p className="settings-description">
 							Service for transcribing audio
 						</p>
@@ -159,10 +159,8 @@ export function ProvidersSettings() {
 				</div>
 				<div className="settings-row" style={{ marginTop: 16 }}>
 					<div>
-						<p className="settings-label">Language Model</p>
-						<p className="settings-description">
-							AI service for text formatting
-						</p>
+						<p className="settings-label">Large Language Model (LLM)</p>
+						<p className="settings-description">Service for text formatting</p>
 					</div>
 					<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
 						{isLoadingProviderData ? (
