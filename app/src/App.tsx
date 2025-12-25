@@ -6,10 +6,10 @@ import { HistoryFeed } from "./components/HistoryFeed";
 import { Logo } from "./components/Logo";
 import {
 	AudioSettings,
+	ConnectionSettings,
 	HotkeySettings,
 	PromptSettings,
 	ProvidersSettings,
-	ServerSettings,
 } from "./components/settings";
 import {
 	DEFAULT_HOLD_HOTKEY,
@@ -206,7 +206,7 @@ function SettingsView() {
 			<AudioSettings />
 			<HotkeySettings />
 			<PromptSettings />
-			<ServerSettings />
+			<ConnectionSettings />
 		</div>
 	);
 }

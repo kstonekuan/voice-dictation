@@ -229,9 +229,11 @@ function RecordingControl() {
 
 		const setup = async () => {
 			unlisten = await tauriAPI.onSettingsChanged(() => {
-				// Invalidate settings query to trigger refetch from Tauri Store
+				// Invalidate settings and serverUrl queries to trigger refetch from Tauri Store
 				// The settings sync useEffect will then detect the change and sync to server
+				// serverUrl must be invalidated separately since useServerUrl() uses its own query key
 				queryClient.invalidateQueries({ queryKey: ["settings"] });
+				queryClient.invalidateQueries({ queryKey: ["serverUrl"] });
 			});
 		};
 
@@ -241,6 +243,32 @@ function RecordingControl() {
 			unlisten?.();
 		};
 	}, [queryClient]);
+
+	// Listen for reconnect request from main window (triggered by user in settings)
+	useEffect(() => {
+		let unlisten: (() => void) | undefined;
+
+		const setup = async () => {
+			unlisten = await tauriAPI.onReconnect(() => {
+				console.log("[Pipecat] Received reconnect request from main window");
+				if (client) {
+					// Disconnect - the Disconnected event handler will auto-reconnect
+					client.disconnect().catch((error) => {
+						console.error(
+							"[Pipecat] Disconnect error during reconnect:",
+							error,
+						);
+					});
+				}
+			});
+		};
+
+		setup();
+
+		return () => {
+			unlisten?.();
+		};
+	}, [client]);
 
 	// Listen for disconnect request from Rust (triggered on app quit)
 	useEffect(() => {

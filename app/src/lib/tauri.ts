@@ -372,6 +372,17 @@ export const tauriAPI = {
 		});
 	},
 
+	// Reconnect request (main -> overlay)
+	async emitReconnect(): Promise<void> {
+		return emit("request-reconnect", {});
+	},
+
+	async onReconnect(callback: () => void): Promise<UnlistenFn> {
+		return listen("request-reconnect", () => {
+			callback();
+		});
+	},
+
 	// Config response sync between windows (overlay -> main)
 	async emitConfigResponse(response: ConfigResponse): Promise<void> {
 		return emit("config-response", response);
